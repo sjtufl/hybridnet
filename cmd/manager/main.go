@@ -133,7 +133,6 @@ func main() {
 	}
 
 	if err = (&networking.PodReconciler{
-		APIReader:             mgr.GetAPIReader(),
 		Client:                mgr.GetClient(),
 		Recorder:              mgr.GetEventRecorderFor(networking.ControllerPod + "Controller"),
 		IPAMStore:             ipamStore,

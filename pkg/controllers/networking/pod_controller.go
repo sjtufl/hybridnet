@@ -25,6 +25,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/retry"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -63,7 +64,6 @@ const (
 
 // PodReconciler reconciles a Pod object
 type PodReconciler struct {
-	APIReader client.Reader
 	client.Client
 
 	Recorder record.EventRecorder
@@ -72,6 +72,8 @@ type PodReconciler struct {
 	IPAMManager IPAMManager
 
 	concurrency.ControllerConcurrency
+
+	podLock sets.String
 }
 
 //+kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;create;update;patch;delete
@@ -95,10 +97,11 @@ func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result
 		}
 	}()
 
-	if err = r.APIReader.Get(ctx, req.NamespacedName, pod); err != nil {
+	if err = r.Get(ctx, req.NamespacedName, pod); err != nil {
 		if err = client.IgnoreNotFound(err); err != nil {
 			return ctrl.Result{}, fmt.Errorf("unable to fetch Pod: %v", err)
 		}
+		r.podLock.Delete(req.NamespacedName.String())
 		return ctrl.Result{}, nil
 	}
 
@@ -117,11 +120,25 @@ func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result
 		return ctrl.Result{}, wrapError("unable to decouple pod", r.decouple(pod))
 	}
 
+	// To avoid IP duplicate allocation by pod lock cache
+	if r.podLock.Has(req.NamespacedName.String()) {
+		return ctrl.Result{}, nil
+	}
+
 	// To avoid IP duplicate allocation in high-frequent pod updates scenario because of
 	// the fucking *delay* of informer
 	if metav1.HasAnnotation(pod.ObjectMeta, constants.AnnotationIP) {
+		// re-lock pod if annotation match
+		r.podLock.Insert(req.NamespacedName.String())
 		return ctrl.Result{}, nil
 	}
+
+	defer func() {
+		if err == nil {
+			// lock pod if allocation succeed
+			r.podLock.Insert(req.NamespacedName.String())
+		}
+	}()
 
 	networkName, err = r.selectNetwork(pod)
 	if err != nil {
@@ -536,11 +553,13 @@ func (r *PodReconciler) SetupWithManager(mgr ctrl.Manager) (err error) {
 		return err
 	}
 
+	// init pod lock with empty set
+	r.podLock = sets.NewString()
+
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(ControllerPod).
 		For(&corev1.Pod{},
 			builder.WithPredicates(
-				&utils.IgnoreDeletePredicate{},
 				&predicate.ResourceVersionChangedPredicate{},
 				predicate.NewPredicateFuncs(func(obj client.Object) bool {
 					pod, ok := obj.(*corev1.Pod)
@@ -557,8 +576,7 @@ func (r *PodReconciler) SetupWithManager(mgr ctrl.Manager) (err error) {
 						return len(pod.Spec.NodeName) > 0 && !metav1.HasAnnotation(pod.ObjectMeta, constants.AnnotationIP)
 					}
 
-					// terminating pods owned by stateful workloads should be processed for IP reservation
-					return strategy.OwnByStatefulWorkload(pod)
+					return true
 				}),
 			),
 		).
