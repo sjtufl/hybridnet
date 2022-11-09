@@ -3,13 +3,15 @@ entries:
   hybridnet:
   - annotations:
       artifacthub.io/changes: |
-        - "add defualtIPRetain parameter"
+        - "Update image to v0.7.5"
+        - "Add scripts to clean felix iptables rules automatically while policy is disabled"
+        - "Introduce NodeInfo CRD"
       artifacthub.io/prerelease: "false"
     apiVersion: v2
-    appVersion: 0.4.2
-    created: "2022-03-22T11:36:37.137597882Z"
+    appVersion: 0.7.5
+    created: "2022-11-09T06:02:45.991812015Z"
     description: A container networking solution aiming at hybrid clouds.
-    digest: d1740f5336d4f6bcdde1b0b75d802e20db5c1291619104b1b62766b8f4e41077
+    digest: 2949b283bba1e802ef9814c4f1faf78673d7ff9876e7ea4634ff7f8afda4dfd7
     home: https://github.com/alibaba/hybridnet
     keywords:
     - network
@@ -24,33 +26,6 @@ entries:
     - https://github.com/alibaba/hybridnet
     type: application
     urls:
-    - https://github.com/alibaba/hybridnet/releases/download/helm-chart-0.1.2/hybridnet-0.1.2.tgz
-    version: 0.1.2
-  - annotations:
-      artifacthub.io/changes: |
-        - "#197 adjust client qps and burst "
-        - "#194 mute uselss logging"
-        - "#192 fix file exists error while creating pod"
-      artifacthub.io/prerelease: "false"
-    apiVersion: v2
-    appVersion: 0.4.2
-    created: "2022-03-18T06:44:02.301241419Z"
-    description: A container networking solution aiming at hybrid clouds.
-    digest: 9ecb8e27491039ad60556b163a394b16adceac507a96e863a4525355ff4cf583
-    home: https://github.com/alibaba/hybridnet
-    keywords:
-    - network
-    - vlan
-    - bgp
-    - vxlan
-    - cni
-    - kubernetes
-    kubeVersion: '>=1.16.0-0'
-    name: hybridnet
-    sources:
-    - https://github.com/alibaba/hybridnet
-    type: application
-    urls:
-    - https://github.com/alibaba/hybridnet/releases/download/helm-chart-0.1.1/hybridnet-0.1.1.tgz
-    version: 0.1.1
-generated: "2022-03-22T11:36:37.137607782Z"
+    - https://github.com/sjtufl/hybridnet/releases/download/helm-chart-0.5.8/hybridnet-0.5.8.tgz
+    version: 0.5.8
+generated: "2022-11-09T06:02:45.991819515Z"
